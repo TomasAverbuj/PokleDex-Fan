@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 const URL = 'https://pokeapi.co/api/v2/pokemon/';
 const URL_LIST = 'https://pokeapi.co/api/v2/pokemon?limit=10000';
 const URL_TYPES = 'https://pokeapi.co/api/v2/type';
+const URL_GENERATIONS = 'https://pokeapi.co/api/v2/generation';
+const PAGE_SIZE = 100;
 
 // Colores oficiales de Pokémon por tipo
 const typeColors = {
@@ -35,33 +37,106 @@ function PokedexGeneral() {
   const [filtro, setFiltro] = useState('ver-todos');
   const [searchName, setSearchName] = useState('');
   const [searchId, setSearchId] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [generaciones, setGeneraciones] = useState([]);
+  const [filtroGeneracion, setFiltroGeneracion] = useState('todas');
+  const loader = useRef(null);
 
+  // Traer tipos y generaciones solo una vez
   useEffect(() => {
-    // Traer todos los tipos
     fetch(URL_TYPES)
       .then(res => res.json())
       .then(data => {
         setTipos(data.results.filter(t => t.name !== 'unknown' && t.name !== 'shadow'));
       });
+    fetch(URL_GENERATIONS)
+      .then(res => res.json())
+      .then(data => setGeneraciones(data.results));
   }, []);
 
-  useEffect(() => {
-    // Traer todos los pokemones (solo nombres y urls)
-    fetch(URL_LIST)
-      .then(res => res.json())
-      .then(async data => {
-        // Traer detalles de cada pokemon
-        const detalles = await Promise.all(
-          data.results.map(async (poke) => {
-            const res = await fetch(poke.url);
-            return await res.json();
+  // Traer pokemones por página
+  const fetchPokemones = useCallback(async (offsetValue = 0, append = false, genUrl = null) => {
+    setLoading(true);
+    let detalles = [];
+    if (genUrl && genUrl !== 'todas') {
+      // Si hay filtro de generación, traer solo los de esa generación
+      const res = await fetch(genUrl);
+      const data = await res.json();
+      // data.pokemon_species tiene los pokemones de esa generación (pero solo nombre y url de species)
+      // Necesitamos mapear a la url de /pokemon/{id}
+      detalles = await Promise.all(
+        data.pokemon_species
+          .sort((a, b) => {
+            // Ordenar por id ascendente
+            const getId = url => parseInt(url.url.split('/').filter(Boolean).pop());
+            return getId(a) - getId(b);
           })
-        );
-        setAllPokemones(detalles);
-        setPokemones(detalles);
-        setLoading(false);
-      });
+          .map(async (poke) => {
+            // Obtener el id de species y usarlo para pedir el /pokemon/{id}
+            const id = poke.url.split('/').filter(Boolean).pop();
+            const resPoke = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+            return await resPoke.json();
+          })
+      );
+      setAllPokemones(detalles);
+      setPokemones(detalles);
+      setHasMore(false); // No hay paginación en filtro de generación
+      setLoading(false);
+      return;
+    }
+    // Si no hay filtro de generación, paginación normal
+    const res = await fetch(`${URL_LIST}&offset=${offsetValue}&limit=${PAGE_SIZE}`);
+    const data = await res.json();
+    detalles = await Promise.all(
+      data.results.map(async (poke) => {
+        const resPoke = await fetch(poke.url);
+        return await resPoke.json();
+      })
+    );
+    if (append) {
+      setAllPokemones(prev => [...prev, ...detalles]);
+      setPokemones(prev => [...prev, ...detalles]);
+    } else {
+      setAllPokemones(detalles);
+      setPokemones(detalles);
+    }
+    setHasMore(data.next !== null);
+    setLoading(false);
   }, []);
+
+  // Inicial
+  useEffect(() => {
+    fetchPokemones(0, false);
+    setOffset(PAGE_SIZE);
+  }, [fetchPokemones]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!hasMore || filtroGeneracion !== 'todas') return;
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 200 && !loading
+      ) {
+        fetchPokemones(offset, true);
+        setOffset(prev => prev + PAGE_SIZE);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [offset, loading, hasMore, fetchPokemones, filtroGeneracion]);
+
+  // Filtro por generación
+  useEffect(() => {
+    if (filtroGeneracion === 'todas') {
+      fetchPokemones(0, false);
+      setOffset(PAGE_SIZE);
+      setHasMore(true);
+    } else {
+      fetchPokemones(0, false, filtroGeneracion);
+    }
+  }, [filtroGeneracion, fetchPokemones]);
 
   // Filtrar por tipo
   const filtrarPorTipo = (tipo) => {
@@ -83,23 +158,23 @@ function PokedexGeneral() {
   });
 
   return (
-    <div className="min-h-screen w-full relative overflow-x-hidden" style={{background: 'radial-gradient(circle at 50% 0%, #fff 0%, #ffe082 40%, #fca5a5 80%, #93c5fd 100%)'}}>
+    <div className="min-h-screen w-full relative overflow-x-hidden" style={{background: 'none'}}>
       {/* Pokéball pattern background */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none" aria-hidden="true" style={{
-        background: 'url("data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'36\' fill=\'%23fff\' stroke=\'%23e5e7eb\' stroke-width=\'4\'/%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'14\' fill=\'%23e53e3e\' stroke=\'%23e5e7eb\' stroke-width=\'2\'/%3E%3Crect x=\'4\' y=\'36\' width=\'72\' height=\'8\' fill=\'%23e53e3e\'/%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'7\' fill=\'%23fff\' stroke=\'%23e5e7eb\' stroke-width=\'1\'/%3E%3C/svg%3E") repeat',
+        background: 'url("data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'36\' fill=\'#fff\' stroke=\'#d1d5db\' stroke-width=\'4\'/%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'14\' fill=\'#9ca3af\' stroke=\'#d1d5db\' stroke-width=\'2\'/%3E%3Crect x=\'4\' y=\'36\' width=\'72\' height=\'8\' fill=\'#d1d5db\'/%3E%3Ccircle cx=\'40\' cy=\'40\' r=\'7\' fill=\'#fff\' stroke=\'#d1d5db\' stroke-width=\'1\'/%3E%3C/svg%3E") repeat',
         backgroundSize: '80px 80px',
-        opacity: 0.13
+        opacity: 0.5
       }}></div>
-      {/* Contenido principal */}
-      <div className="relative z-10 w-full min-h-screen">
+      {/* NAV BAR: Buscadores, Filtros y Generaciones */}
+      <nav className="w-full max-w-screen overflow-x-auto bg-white/95 shadow-lg rounded-b-2xl px-4 md:px-12 py-6 mb-10 flex flex-col gap-6 items-center sticky top-0 z-20">
         {/* Buscadores */}
-        <div className="w-full flex flex-col md:flex-row gap-4 mb-6 items-center px-2 md:px-8">
+        <div className="w-full flex flex-col md:flex-row gap-4 items-center">
           <input
             type="text"
             placeholder="Buscar por nombre..."
             value={searchName}
             onChange={e => setSearchName(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-full md:w-1/2 font-semibold"
+            className="w-full md:w-1/2 px-8 py-4 border-2 border-gray-200 rounded-full shadow focus:outline-none focus:ring-4 focus:ring-blue-200 text-lg font-semibold bg-white transition-all duration-200 placeholder-gray-400"
           />
           <input
             type="text"
@@ -108,17 +183,41 @@ function PokedexGeneral() {
             placeholder="Buscar por número..."
             value={searchId}
             onChange={e => {
-              // Solo permitir números
               const val = e.target.value.replace(/[^0-9]/g, '');
               setSearchId(val);
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-full md:w-1/4 font-semibold"
+            className="w-full md:w-1/4 px-8 py-4 border-2 border-gray-200 rounded-full shadow focus:outline-none focus:ring-4 focus:ring-red-200 text-lg font-semibold bg-white transition-all duration-200 placeholder-gray-400"
           />
         </div>
+        {/* Filtro por generación - Botones interactivos */}
+        <div className="w-full flex flex-col items-center gap-2 mb-2">
+          <span className="font-bold text-lg mb-1">Generación:</span>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => setFiltroGeneracion('todas')}
+              className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
+                ${filtroGeneracion === 'todas' ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+              `}
+            >
+              Todas
+            </button>
+            {generaciones.map((gen, idx) => (
+              <button
+                key={gen.name}
+                onClick={() => setFiltroGeneracion(gen.url)}
+                className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
+                  ${filtroGeneracion === gen.url ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+                `}
+              >
+                {['I','II','III','IV','V','VI','VII','VIII','IX'][idx]}
+              </button>
+            ))}
+          </div>
+        </div>
         {/* Filtros */}
-        <div className="w-full flex flex-wrap gap-2 mb-8 md:sticky md:top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-200 py-4 px-2 md:px-8">
+        <div className="w-full flex flex-wrap gap-3 justify-center">
           <button
-            className={`px-4 py-1 rounded-full font-bold border border-black shadow-sm transition-all duration-200 ${filtro === 'ver-todos' ? 'bg-black text-white scale-105' : 'bg-white text-black hover:bg-gray-200'}`}
+            className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
             onClick={() => filtrarPorTipo('ver-todos')}
           >
             Ver todos
@@ -127,40 +226,50 @@ function PokedexGeneral() {
             <button
               key={tipo.name}
               style={{ backgroundColor: typeColors[tipo.name]?.bg }}
-              className={`px-4 py-1 rounded-full font-bold border border-black shadow-sm capitalize transition-all duration-200 ${filtro === tipo.name ? 'scale-105 ring-2 ring-black ' : ''} ${typeColors[tipo.name]?.text || 'text-black'}`}
+              className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
               onClick={() => filtrarPorTipo(tipo.name)}
             >
               {tipo.name}
             </button>
           ))}
         </div>
+      </nav>
+      {/* Contenido principal */}
+      <div className="relative z-10 w-full min-h-screen">
         {/* Pokemones */}
         {loading ? (
           <div className="flex justify-center items-center min-h-screen w-screen">
             <span className="text-black text-2xl animate-pulse">Cargando Pokémons...</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full px-2 md:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 w-full px-2 md:px-8">
             {pokemonesFiltrados.map((poke) => (
               <Link to={`/pokemon/${poke.id}`} key={poke.id} className="no-underline">
-                <div className="bg-white/60 border border-gray-200 rounded-2xl shadow-xl p-4 flex flex-col items-center hover:shadow-2xl transition-all cursor-pointer">
-                  <div className="w-24 h-24 flex items-center justify-center mb-2 bg-gradient-to-tr from-red-100 via-white to-black/10 rounded-full border-2 border-red-200">
+                <div className="relative bg-white/70 border-2 border-gray-200 rounded-3xl shadow-xl p-6 flex flex-col items-center hover:shadow-2xl transition-all cursor-pointer overflow-hidden">
+                  {/* Card Pokémon (sin cambios) */}
+                  <div className="w-24 h-24 flex items-center justify-center mb-2 bg-gradient-to-tr from-red-100 via-white to-black/10 rounded-full border-2 border-red-200 z-10">
                     <img src={poke.sprites.other["official-artwork"].front_default} alt={poke.name} className="w-20 h-20 object-contain" />
                   </div>
-                  <h2 className="text-xl font-extrabold capitalize mb-1 text-gray-900 tracking-wide text-center">{poke.name}</h2>
-                  <p className="text-xs text-gray-400 mb-2 font-bold">#{poke.id}</p>
-                  <div className="flex gap-2 mb-2">
+                  <h2 className="text-2xl font-extrabold capitalize mb-1 text-gray-900 tracking-wide text-center z-10">{poke.name}</h2>
+                  <p className="text-xs text-gray-400 mb-2 font-bold z-10">#{poke.id}</p>
+                  <div className="flex gap-2 mb-2 z-10">
                     {poke.types.map((type) => (
-                      <span key={type.type.name} style={{ backgroundColor: typeColors[type.type.name]?.bg }} className={`px-2 py-1 rounded text-sm font-bold capitalize ${typeColors[type.type.name]?.text || 'text-black'}`}>{type.type.name}</span>
+                      <span key={type.type.name} style={{ backgroundColor: typeColors[type.type.name]?.bg }} className={`px-3 py-1 rounded-full text-sm font-bold capitalize border-2 ${typeColors[type.type.name]?.text || 'text-black'} border-white/60 shadow`}>{type.type.name}</span>
                     ))}
                   </div>
-                  <div className="flex gap-4 text-xs text-gray-700 font-semibold">
+                  <div className="flex gap-4 text-sm text-gray-700 font-semibold z-10">
                     <span>Altura: {poke.height / 10} m</span>
                     <span>Peso: {poke.weight / 10} kg</span>
                   </div>
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+        {/* Loader para infinite scroll */}
+        {loading && pokemones.length > 0 && (
+          <div className="flex justify-center items-center py-8">
+            <span className="text-black text-xl animate-pulse">Cargando más...</span>
           </div>
         )}
       </div>
