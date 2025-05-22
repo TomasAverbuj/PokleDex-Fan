@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Fragment } from 'react';
 
 const URL = 'https://pokeapi.co/api/v2/pokemon/';
 const URL_LIST = 'https://pokeapi.co/api/v2/pokemon?limit=10000';
@@ -42,6 +43,8 @@ function PokedexGeneral() {
   const [generaciones, setGeneraciones] = useState([]);
   const [filtroGeneracion, setFiltroGeneracion] = useState('todas');
   const loader = useRef(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Traer tipos y generaciones solo una vez
   useEffect(() => {
@@ -157,6 +160,19 @@ function PokedexGeneral() {
     return nombreMatch && idMatch;
   });
 
+  // Mostrar botón cuando se scrollea hacia abajo
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden" style={{background: 'none'}}>
       {/* Pokéball pattern background */}
@@ -189,50 +205,124 @@ function PokedexGeneral() {
             className="w-full md:w-1/4 px-8 py-4 border-2 border-gray-200 rounded-full shadow focus:outline-none focus:ring-4 focus:ring-red-200 text-lg font-semibold bg-white transition-all duration-200 placeholder-gray-400"
           />
         </div>
-        {/* Filtro por generación - Botones interactivos */}
-        <div className="w-full flex flex-col items-center gap-2 mb-2">
-          <span className="font-bold text-lg mb-1">Generación:</span>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <button
-              onClick={() => setFiltroGeneracion('todas')}
-              className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
-                ${filtroGeneracion === 'todas' ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
-              `}
-            >
-              Todas
-            </button>
-            {generaciones.map((gen, idx) => (
+        {/* Filtros solo en desktop/tablet */}
+        <div className="hidden md:flex w-full flex-col gap-2">
+          {/* Filtro por generación - Botones interactivos */}
+          <div className="w-full flex flex-col items-center gap-2 mb-2">
+            <span className="font-bold text-lg mb-1">Generación:</span>
+            <div className="flex flex-wrap gap-3 justify-center">
               <button
-                key={gen.name}
-                onClick={() => setFiltroGeneracion(gen.url)}
+                onClick={() => setFiltroGeneracion('todas')}
                 className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
-                  ${filtroGeneracion === gen.url ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+                  ${filtroGeneracion === 'todas' ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
                 `}
               >
-                {['I','II','III','IV','V','VI','VII','VIII','IX'][idx]}
+                Todas
+              </button>
+              {generaciones.map((gen, idx) => (
+                <button
+                  key={gen.name}
+                  onClick={() => setFiltroGeneracion(gen.url)}
+                  className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
+                    ${filtroGeneracion === gen.url ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+                  `}
+                >
+                  {['I','II','III','IV','V','VI','VII','VIII','IX'][idx]}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Filtros de tipo */}
+          <div className="w-full flex flex-wrap gap-3 justify-center">
+            <button
+              className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
+              onClick={() => filtrarPorTipo('ver-todos')}
+            >
+              Ver todos
+            </button>
+            {tipos.map(tipo => (
+              <button
+                key={tipo.name}
+                style={{ backgroundColor: typeColors[tipo.name]?.bg }}
+                className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
+                onClick={() => filtrarPorTipo(tipo.name)}
+              >
+                {tipo.name}
               </button>
             ))}
           </div>
         </div>
-        {/* Filtros */}
-        <div className="w-full flex flex-wrap gap-3 justify-center">
-          <button
-            className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
-            onClick={() => filtrarPorTipo('ver-todos')}
-          >
-            Ver todos
-          </button>
-          {tipos.map(tipo => (
-            <button
-              key={tipo.name}
-              style={{ backgroundColor: typeColors[tipo.name]?.bg }}
-              className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
-              onClick={() => filtrarPorTipo(tipo.name)}
-            >
-              {tipo.name}
-            </button>
-          ))}
-        </div>
+        {/* Botón flotante de filtros en mobile */}
+        <button
+          className="fixed bottom-6 left-6 z-50 bg-red-500 text-white md:hidden rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl hover:bg-red-700 transition-all border-4 border-white/90"
+          aria-label="Mostrar filtros"
+          onClick={() => setShowMobileFilters(true)}
+        >
+          {/* Pokeball SVG colorida */}
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+            <circle cx="24" cy="24" r="20" fill="#fff" stroke="#222" strokeWidth="3" />
+            <path d="M4 24h40" stroke="#e53e3e" strokeWidth="4" />
+            <circle cx="24" cy="24" r="8" fill="#fff" stroke="#222" strokeWidth="3" />
+            <circle cx="24" cy="24" r="4" fill="#e53e3e" stroke="#222" strokeWidth="2" />
+            <path d="M44 24a20 20 0 0 0-40 0" stroke="#e53e3e" strokeWidth="4" />
+          </svg>
+          <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold bg-black text-white px-2 py-0.5 rounded-full shadow-lg">Filtros</span>
+        </button>
+        {/* Modal/drawer de filtros en mobile */}
+        {showMobileFilters && (
+          <div className="fixed inset-0 z-50 flex items-end md:hidden bg-black/40" onClick={() => setShowMobileFilters(false)}>
+            <div className="w-full bg-white rounded-t-3xl p-6 pt-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold text-lg">Filtros</span>
+                <button onClick={() => setShowMobileFilters(false)} className="text-2xl font-bold text-gray-500 hover:text-black">×</button>
+              </div>
+              {/* Filtro por generación - Botones interactivos */}
+              <div className="w-full flex flex-col items-center gap-2 mb-4">
+                <span className="font-bold text-lg mb-1">Generación:</span>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <button
+                    onClick={() => { setFiltroGeneracion('todas'); setShowMobileFilters(false); }}
+                    className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
+                      ${filtroGeneracion === 'todas' ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+                    `}
+                  >
+                    Todas
+                  </button>
+                  {generaciones.map((gen, idx) => (
+                    <button
+                      key={gen.name}
+                      onClick={() => { setFiltroGeneracion(gen.url); setShowMobileFilters(false); }}
+                      className={`w-12 h-12 flex items-center justify-center rounded-full border-2 font-bold text-lg shadow-md transition-all duration-200
+                        ${filtroGeneracion === gen.url ? 'bg-black text-white scale-110 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}
+                      `}
+                    >
+                      {['I','II','III','IV','V','VI','VII','VIII','IX'][idx]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Filtros de tipo */}
+              <div className="w-full flex flex-wrap gap-3 justify-center mb-2">
+                <button
+                  className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
+                  onClick={() => { filtrarPorTipo('ver-todos'); setShowMobileFilters(false); }}
+                >
+                  Ver todos
+                </button>
+                {tipos.map(tipo => (
+                  <button
+                    key={tipo.name}
+                    style={{ backgroundColor: typeColors[tipo.name]?.bg }}
+                    className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
+                    onClick={() => { filtrarPorTipo(tipo.name); setShowMobileFilters(false); }}
+                  >
+                    {tipo.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
       {/* Contenido principal */}
       <div className="relative z-10 w-full min-h-screen">
@@ -273,6 +363,18 @@ function PokedexGeneral() {
           </div>
         )}
       </div>
+      {/* Botón scroll to top */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 bg-white text-black rounded-full shadow-lg w-14 h-14 flex items-center justify-center text-3xl hover:bg-red-600 transition-all border-4 border-white/80"
+          aria-label="Volver arriba"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
