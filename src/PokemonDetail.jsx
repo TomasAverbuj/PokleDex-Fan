@@ -200,10 +200,10 @@ function PokemonDetail() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center py-8 px-2 md:px-8">
       <Link to="/" className="mb-6 text-blue-600 hover:underline">← Volver a la Pokédex</Link>
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8 flex flex-col md:flex-row items-center w-full max-w-4xl gap-8">
-        <div className="flex flex-col items-center w-full md:w-1/3">
-          <div className="w-56 h-56 flex items-center justify-center mb-4 bg-gradient-to-tr from-red-100 via-white to-black/10 rounded-full border-2 border-red-200">
-            <img src={pokemon.sprites.other['official-artwork'].front_default} alt={pokemon.name} className="w-48 h-48 object-contain" />
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-2 sm:p-8 flex flex-col md:flex-row items-center w-full max-w-4xl gap-8">
+        <div className="flex flex-col items-center w-full md:w-1/3 mb-6 md:mb-0">
+          <div className="w-full max-w-xs aspect-square flex items-center justify-center mb-4 bg-gradient-to-tr from-red-100 via-white to-black/10 rounded-full border-2 border-red-200 mx-auto">
+            <img src={pokemon.sprites.other['official-artwork'].front_default} alt={pokemon.name} className="w-full h-auto max-w-[180px] object-contain mx-auto" />
           </div>
           <h2 className="text-3xl font-extrabold capitalize mb-2 text-gray-900 tracking-wide">{pokemon.name}</h2>
           <p className="text-md text-gray-400 mb-4">#{pokemon.id}</p>
@@ -241,9 +241,9 @@ function PokemonDetail() {
       </div>
       {/* Línea evolutiva mejorada */}
       {evolution.length > 1 && (
-        <div className="mt-10 w-full max-w-6xl flex flex-col items-center px-2 py-8 rounded-xl" style={{background: 'repeating-linear-gradient(135deg, #e5e7eb 0 20px, #f3f4f6 20px 40px)'}}>
-          <h3 className="text-2xl font-bold mb-8 text-gray-800 w-full text-left">Evoluciones</h3>
-          <div className="flex flex-wrap justify-center items-center gap-8 w-full">
+        <div className="mt-10 w-full max-w-2xl mx-auto flex flex-col items-center py-8 rounded-xl" style={{background: 'repeating-linear-gradient(135deg, #e5e7eb 0 20px, #f3f4f6 20px 40px)'}}>
+          <h3 className="text-2xl font-bold mb-8 text-gray-800 w-full text-center md:text-left">Evoluciones</h3>
+          <div className="flex flex-col md:flex-row flex-wrap justify-center items-center gap-8 w-full">
             {evolution.map((evo, idx) => (
               <div key={evo.id} className="flex flex-col items-center w-56">
                 <div className="rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center w-40 h-40 mb-4">
