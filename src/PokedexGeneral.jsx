@@ -235,7 +235,7 @@ function PokedexGeneral() {
           {/* Filtros de tipo */}
           <div className="w-full flex flex-wrap gap-3 justify-center">
             <button
-              className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
+              className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-black scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 hover:text-gray-800 border-gray-300'} hover:scale-105`}
               onClick={() => filtrarPorTipo('ver-todos')}
             >
               Ver todos
@@ -244,7 +244,7 @@ function PokedexGeneral() {
               <button
                 key={tipo.name}
                 style={{ backgroundColor: typeColors[tipo.name]?.bg }}
-                className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
+                className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} text-black hover:text-gray-800 hover:scale-105`}
                 onClick={() => filtrarPorTipo(tipo.name)}
               >
                 {tipo.name}
@@ -304,7 +304,7 @@ function PokedexGeneral() {
               {/* Filtros de tipo */}
               <div className="w-full flex flex-wrap gap-3 justify-center mb-2">
                 <button
-                  className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-white scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} hover:scale-105`}
+                  className={`px-8 py-3 rounded-full font-bold border-2 shadow-md transition-all duration-200 text-lg ${filtro === 'ver-todos' ? 'bg-black text-black scale-105 border-red-500 shadow-lg' : 'bg-white text-black hover:bg-gray-100 hover:text-gray-800 border-gray-300'} hover:scale-105`}
                   onClick={() => { filtrarPorTipo('ver-todos'); setShowMobileFilters(false); }}
                 >
                   Ver todos
@@ -313,7 +313,7 @@ function PokedexGeneral() {
                   <button
                     key={tipo.name}
                     style={{ backgroundColor: typeColors[tipo.name]?.bg }}
-                    className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} ${typeColors[tipo.name]?.text || 'text-black'} hover:scale-105`}
+                    className={`px-8 py-3 rounded-full font-bold border-2 shadow-md capitalize transition-all duration-200 text-lg ${filtro === tipo.name ? 'scale-105 border-black shadow-lg ring-2 ring-black' : 'border-gray-300'} text-black hover:text-gray-800 hover:scale-105`}
                     onClick={() => { filtrarPorTipo(tipo.name); setShowMobileFilters(false); }}
                   >
                     {tipo.name}
