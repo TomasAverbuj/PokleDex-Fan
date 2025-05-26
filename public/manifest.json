@@ -1,0 +1,23 @@
+{
+  "name": "PokéDex",
+  "short_name": "PokéDex",
+  "description": "Tu enciclopedia Pokémon favorita",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e53e3e",
+  "icons": [
+    {
+      "src": "/Poké_Ball_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Poké_Ball_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+} 
